@@ -1,9 +1,24 @@
 require(shiny)
 require(knitr)
-require(shinyIncubator)
+# require(shinyIncubator)
+
+loadingBar <- tags$div(class="progress progress-striped active",
+                       tags$div(class="bar", style="width: 100%;"))
+# Code for loading message
+loadingMsg <- tags$div(class="modal", tabindex="-1", role="dialog", 
+                       "aria-labelledby"="myModalLabel", "aria-hidden"="true",
+                       tags$div(class="modal-header",
+                                tags$h3(id="myModalHeader", "Loading...")),
+                       tags$div(class="modal-footer",
+                                loadingBar))
+# The conditional panel to show when shiny is busy
+loadingPanel <- conditionalPanel(paste("input.goButton > 0 &&", 
+                                       "$('html').hasClass('shiny-busy')"),
+                                 loadingMsg)
+
 
 shinyUI(navbarPage(
-  #   theme = "bootstrap.css",
+#   theme = "bootstrap.css",
   title=("ChaoEntropy Online"),
   tabPanel(("Shannon entropy"),
            h1("ChaoEntropy"),
@@ -68,16 +83,15 @@ shinyUI(navbarPage(
                
              ),
              mainPanel(
-               progressInit(),
                tabsetPanel(
                  tabPanel("Data Summary", h3("Basic data information"),
                           icon = icon("list-alt"),
                           verbatimTextOutput("data_summary")
                  ),
                  tabPanel("Estimation", h3("Estimation of entropy"), 
+                          loadingPanel,
                           icon = icon("thumbs-up"),
                           verbatimTextOutput('est'),
-#                           htmlOutput('est'),
                           downloadLink("dlest", "Download as csv file"),
                           conditionalPanel(
                             condition="input.datatype == 'abu'",
@@ -88,6 +102,7 @@ shinyUI(navbarPage(
                  ),
                  
                  tabPanel("Visualization", h3("Comparison with different methods"), 
+                          loadingPanel,
                           icon = icon("bar-chart-o"),
                           plotOutput("visualization", width="800px", height="auto")
                           
@@ -136,21 +151,20 @@ shinyUI(navbarPage(
         )
       ),
       mainPanel(
-        progressInit(),
         tabsetPanel(
           tabPanel("Data Viewer", h3("Show raw data"),
                    icon = icon("list-alt"),
                    uiOutput('MIdata_summary')
-#                    verbatimTextOutput('MIdata_summary')
-#                    htmlOutput('MIdata_summary')
           ),
           tabPanel("Estimation", h3("Estimation of entropy"), 
+                   loadingPanel,
                    icon = icon("thumbs-up"),
                    verbatimTextOutput('MIest'),
                    downloadLink("MIdlest", "Download as csv file"),
                    includeMarkdown("man-mi/estimator-mi.md")
           ),
           tabPanel("Visualization", h3("Comparison with different methods"), 
+                   loadingPanel,
                    icon = icon("bar-chart-o"),
                    plotOutput("MIvisualization", width="800px", height="auto")
           ),

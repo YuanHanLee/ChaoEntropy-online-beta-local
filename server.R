@@ -2,11 +2,10 @@ require(shiny)
 require(googleVis)
 require(knitr)
 require(xtable)
-# require(ggplot2)
+require(ggplot2)
 # devtools::install_github("wesanderson","karthik")
-# require(wesanderson)
+require(wesanderson)
 # devtools::install_github("shiny-incubator", "rstudio")
-require(shinyIncubator)
 
 ## entropy
 load("data/Ant.rda")
@@ -24,7 +23,7 @@ understory <- read.csv("data-mi/understory.csv", header=FALSE)
 source("sub-mi/miFunction.R")
 
 
-shinyServer(function(input, output, session) {
+shinyServer(function(input, output) {
   tempRD2 <- paste(tempfile(), ".RData", sep="")
   tempRD3 <- paste(tempfile(), ".RData", sep="")
   
@@ -173,26 +172,19 @@ shinyServer(function(input, output, session) {
           return()
         }
       }
-      withProgress(session, min=0, max=input$nboot, expr={
-        for (i in 1:input$nboot) {
-          setProgress(message = 'Calculation in progress',
-                      detail = 'This may take a while :)',
-                      value=i)
-          Sys.sleep(0.0001)
-        }
-        dataset <- selectedData()
-        out <- computation()
-        excl <- list()
-        gtab <- list()
-        for (i in seq_along(dataset)) {
-          excl[i] <- list(out[[i]][[1]])
-          gtab[i] <- list(out[[i]][[2]])
-        }
-        names(gtab) <- input$dataset
-        names(excl) <- input$dataset
-        saveRDS(excl, tempRD2)
-        return(gtab)
-      })
+    
+      dataset <- selectedData()
+      out <- computation()
+      excl <- list()
+      gtab <- list()
+      for (i in seq_along(dataset)) {
+        excl[i] <- list(out[[i]][[1]])
+        gtab[i] <- list(out[[i]][[2]])
+      }
+      names(gtab) <- input$dataset
+      names(excl) <- input$dataset
+      saveRDS(excl, tempRD2)
+      return(gtab)
     })
   })
   
@@ -215,28 +207,23 @@ shinyServer(function(input, output, session) {
           return()
         }
       }
-      withProgress(session, min=0, max=input$nboot, expr={
-        for (i in 1:input$nboot) {
-          setProgress(message = 'Calculation in progress',
-                      detail = 'This may take a while :)',
-                      value=i)
-          Sys.sleep(0.0001)
-        }
-        dataset <- selectedData()
-        out <- computation()
-        pic <- list()
-        par(mfrow=c(length(dataset), 1))
-        for (i in seq_along(dataset)) {
-          tab <- out[[i]][[1]]
-          name.ag <- rownames(tab)
-          plot(tab[,1], ylim=c(min(tab[,3]),max(tab[,4])), pch=2, cex=1.5, xlab="",
-               ylab="Shannon entropy", las=2, xaxt="n")
-          axis(1, at=1:nrow(tab), labels=name.ag)
-          arrows(1:nrow(tab), tab[,4], 1:nrow(tab), tab[,3], angle=90, code=3, length=.1)
-          
-        }
-        #         print(multiplot4shiny(pic, cols=1))
-      })
+      
+      dataset <- selectedData()
+      out <- computation()
+      pic <- list()
+      for (i in seq_along(dataset)) {
+        temp <- out[[i]][[1]]
+        index <- letters[1:nrow(temp)]
+        df <- data.frame(index, rownames(temp), temp)
+        rownames(df) <- NULL
+        colnames(df) <- c("id", "Methods", "Estimator", "SE", "Lower", "Upper")
+        p <- ggplot(df, aes(id, Estimator, ymin=Lower, ymax=Upper, colour=id))
+        pout <- p + geom_errorbar(width = 0.5, size=2) + geom_point(size=6) + labs(title=names(dataset[i]), x="Methods") + 
+          scale_color_manual(values=c(wes.palette(5, "Darjeeling"), 1), name="Methods", breaks=index, labels=rownames(temp)) + 
+          scale_x_discrete(breaks=index, labels=rownames(temp))  
+        pic[i] <- list(pout)
+      }
+      print(multiplot4shiny(pic, cols=1))
     })
   }, height=getVarHeight)
   
@@ -370,26 +357,19 @@ shinyServer(function(input, output, session) {
           return()
         }
       }
-      withProgress(session, min=0, max=input$MInboot, expr={
-        for (i in 1:input$MInboot) {
-          setProgress(message = 'Calculation in progress',
-                      detail = 'This may take a while :)',
-                      value=i)
-          Sys.sleep(0.0001)
-        }
-        dataset <- MIselectedData()
-        out <- MIcomputation()
-        excl <- list()
-        gtab <- list()
-        for (i in seq_along(dataset)) {
-          excl[i] <- list(out[[i]][[1]])
-          gtab[i] <- list(out[[i]][[2]])
-        }
-        names(gtab) <- input$MIdataset
-        names(excl) <- input$MIdataset
-        saveRDS(excl, tempRD3)
-        return(gtab)
-      })
+      
+      dataset <- MIselectedData()
+      out <- MIcomputation()
+      excl <- list()
+      gtab <- list()
+      for (i in seq_along(dataset)) {
+        excl[i] <- list(out[[i]][[1]])
+        gtab[i] <- list(out[[i]][[2]])
+      }
+      names(gtab) <- input$MIdataset
+      names(excl) <- input$MIdataset
+      saveRDS(excl, tempRD3)
+      return(gtab)
     })
   })
   
@@ -420,27 +400,22 @@ shinyServer(function(input, output, session) {
           return()
         }
       }
-      withProgress(session, min=0, max=input$MInboot, expr={
-        for (i in 1:input$MInboot) {
-          setProgress(message = 'Calculation in progress',
-                      detail = 'This may take a while :)',
-                      value=i)
-          Sys.sleep(0.0001)
-        }
-        dataset <- MIselectedData()
-        out <- MIcomputation()
-        pic <- list()
-        par(mfrow=c(length(dataset), 1))
-        for (i in seq_along(dataset)) {
-          tab <- out[[i]][[1]]
-          name.ag <- rownames(tab)
-          plot(tab[,1], ylim=c(min(tab[,3]),max(tab[,4])), pch=2, cex=1.5, xlab="",
-               ylab="Mutual Information", las=2, xaxt="n")
-          axis(1, at=1:nrow(tab), labels=name.ag)
-          arrows(1:nrow(tab), tab[,4], 1:nrow(tab), tab[,3], angle=90, code=3, length=.1)
-        }
-        #         print(multiplot4shiny(pic, cols=1))
-      })
+      dataset <- MIselectedData()
+      out <- MIcomputation()
+      pic <- list()
+      for (i in seq_along(dataset)) {
+        temp <- out[[i]][[1]]
+        index <- letters[1:nrow(temp)]
+        df <- data.frame(index, rownames(temp), temp)
+        rownames(df) <- NULL
+        colnames(df) <- c("id", "Methods", "Estimator", "SE", "Lower", "Upper")
+        p <- ggplot(df, aes(id, Estimator, ymin=Lower, ymax=Upper, colour=id))
+        pout <- p + geom_errorbar(width = 0.5, size=2) + geom_point(size=6) + labs(title=names(dataset[i]), x="Methods") + 
+          scale_color_manual(values=c(wes.palette(5, "Darjeeling"), 1), name="Methods", breaks=index, labels=rownames(temp)) + 
+          scale_x_discrete(breaks=index, labels=rownames(temp))  
+        pic[i] <- list(pout)
+      }
+      print(multiplot4shiny(pic, cols=1))
     })
   }
   , height=MIgetVarHeight)
